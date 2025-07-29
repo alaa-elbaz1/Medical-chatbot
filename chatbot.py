@@ -8,11 +8,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 import google.generativeai as genai
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
+import langdetect
 
 # إعداد مفاتيح Gemini
 GEMINI_API_KEY = "AIzaSyBBWg_3GoVzBRQuarjkIoIPkCNeW6xJgEY"
 genai.configure(api_key=GEMINI_API_KEY)
-gemini_model = genai.GenerativeModel("models/gemini-pro")
+gemini_model = genai.GenerativeModel("gemini-1.5-pro")
 
 # إعداد GPT-2
 @st.cache_resource
@@ -112,6 +113,12 @@ def show_history(username, translate):
     except Exception as e:
         st.error(translate(f"خطأ في عرض السجل: {e}", f"Error displaying history: {e}"))
 
+def is_arabic(text):
+    try:
+        return langdetect.detect(text) == 'ar'
+    except:
+        return False
+
 def ask_gpt2(prompt, max_length=100):
     try:
         inputs = gpt2_tokenizer.encode(prompt, return_tensors="pt")
@@ -131,6 +138,8 @@ def ask_gemini(message):
         return _("عذراً، حدث خطأ أثناء معالجة سؤالك", "Sorry, an error occurred while processing your question")
 
 def ask_combined_model(message):
+    if is_arabic(message):
+        return ask_gemini(message)
     gpt2_response = ask_gpt2(message)
     if not gpt2_response or len(gpt2_response.split()) < 10:
         st.info(_("جارٍ استخدام Gemini لتحسين الإجابة...", "Using Gemini for better response..."))
